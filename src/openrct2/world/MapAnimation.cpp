@@ -21,6 +21,7 @@
 #include "../object/WallSceneryEntry.h"
 #include "../profiling/Profiling.h"
 #include "../ride/Ride.h"
+#include "../ride/RideData.h"
 #include "../ride/ted/TrackElemType.h"
 #include "Map.h"
 #include "tile_element/EntranceElement.h"
@@ -632,6 +633,28 @@ void MapAnimations::MarkAllTiles()
                 case UpdateType::update:
                     MarkTileForUpdate(TileCoordsXY(it.x, it.y));
                     break;
+            }
+        }
+
+        // Temporary animations are not stored in the park file. Recreate them from the element state, otherwise
+        // a running on-ride photo or land edge door gets stuck after loading, which desyncs joining clients.
+        if (it.element->getType() == TileElementType::track)
+        {
+            const auto* track = it.element->asTrack();
+            const CoordsXYZ loc{ TileCoordsXY(it.x, it.y).toCoordsXY(), track->getBaseZ() };
+            if (track->getTrackType() == TrackElemType::onRidePhoto && track->isTakingPhoto())
+            {
+                CreateTemporary(loc, TemporaryType::onRidePhoto);
+            }
+            if (GetRideTypeDescriptor(track->getRideType()).flags.has(RtdFlag::hasLandscapeDoors))
+            {
+                const auto doorAState = track->getDoorAState();
+                const auto doorBState = track->getDoorBState();
+                if ((doorAState != kLandEdgeDoorFrameClosed && doorAState != kLandEdgeDoorFrameOpen)
+                    || (doorBState != kLandEdgeDoorFrameClosed && doorBState != kLandEdgeDoorFrameOpen))
+                {
+                    CreateTemporary(loc, TemporaryType::landEdgeDoor);
+                }
             }
         }
     }
