@@ -18,6 +18,7 @@
 #include "../../localisation/StringIds.h"
 #include "../../management/Finance.h"
 #include "../../object/PathAdditionEntry.h"
+#include "../../network/Network.h"
 #include "../../ride/RideConstruction.h"
 #include "../../windows/Intent.h"
 #include "../../world/ConstructionClearance.h"
@@ -233,11 +234,17 @@ namespace OpenRCT2::GameActions
             res.cost += 6.00_GBP;
         }
 
-        FootpathQueueChainReset();
-
-        if (!GetFlags().has(CommandFlag::trackDesign))
+        // Ghost paths only exist on the building client in multiplayer; connecting or disconnecting the
+        // neighbouring paths' edges or queue chains for them would desync that client.
+        const bool isNetworkGhost = GetFlags().has(CommandFlag::ghost) && Network::GetMode() != Network::Mode::none;
+        if (!isNetworkGhost)
         {
-            FootpathRemoveEdgesAt(_loc, reinterpret_cast<TileElement*>(pathElement));
+            FootpathQueueChainReset();
+
+            if (!GetFlags().has(CommandFlag::trackDesign))
+            {
+                FootpathRemoveEdgesAt(_loc, reinterpret_cast<TileElement*>(pathElement));
+            }
         }
 
         if (_constructFlags & PathConstructFlag::IsLegacyPathObject)
@@ -441,11 +448,15 @@ namespace OpenRCT2::GameActions
             pathElement->setIsBroken(false);
             pathElement->setGhost(GetFlags().has(CommandFlag::ghost));
 
-            FootpathQueueChainReset();
-
-            if (!GetFlags().has(CommandFlag::trackDesign))
+            const bool isNetworkGhost = GetFlags().has(CommandFlag::ghost) && Network::GetMode() != Network::Mode::none;
+            if (!isNetworkGhost)
             {
-                FootpathRemoveEdgesAt(_loc, pathElement->as<TileElement>());
+                FootpathQueueChainReset();
+
+                if (!GetFlags().has(CommandFlag::trackDesign))
+                {
+                    FootpathRemoveEdgesAt(_loc, pathElement->as<TileElement>());
+                }
             }
             if (gLegacyScene == LegacyScene::scenarioEditor && !GetFlags().has(CommandFlag::ghost))
             {
@@ -513,10 +524,16 @@ namespace OpenRCT2::GameActions
             }
         }
 
-        if (!GetFlags().has(CommandFlag::trackDesign))
-            FootpathConnectEdges(_loc, reinterpret_cast<TileElement*>(pathElement), GetFlags());
+        // Ghost paths only exist on the building client in multiplayer; connecting or disconnecting the
+        // neighbouring paths' edges or queue chains for them would desync that client.
+        const bool isNetworkGhost = GetFlags().has(CommandFlag::ghost) && Network::GetMode() != Network::Mode::none;
+        if (!isNetworkGhost)
+        {
+            if (!GetFlags().has(CommandFlag::trackDesign))
+                FootpathConnectEdges(_loc, reinterpret_cast<TileElement*>(pathElement), GetFlags());
 
-        FootpathUpdateQueueChains();
+            FootpathUpdateQueueChains();
+        }
         MapInvalidateTileFull(_loc);
     }
 

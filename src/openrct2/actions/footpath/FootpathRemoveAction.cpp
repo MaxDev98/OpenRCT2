@@ -14,6 +14,7 @@
 #include "../../OpenRCT2.h"
 #include "../../localisation/StringIds.h"
 #include "../../management/Finance.h"
+#include "../../network/Network.h"
 #include "../../world/Footpath.h"
 #include "../../world/Location.hpp"
 #include "../../world/Map.h"
@@ -91,16 +92,28 @@ namespace OpenRCT2::GameActions
         TileElement* footpathElement = GetFootpathElement();
         if (footpathElement != nullptr)
         {
-            FootpathQueueChainReset();
+            // Ghost paths only exist on the building client in multiplayer; disconnecting the neighbouring
+            // paths' edges or queue chains for them would desync that client.
+            const bool isNetworkGhost = GetFlags().has(CommandFlag::ghost) && Network::GetMode() != Network::Mode::none;
+            if (!isNetworkGhost)
+            {
+                FootpathQueueChainReset();
+            }
             auto bannerRes = RemoveBannersAtElement(gameState, _loc, footpathElement);
             if (bannerRes.error == Status::ok)
             {
                 res.cost += bannerRes.cost;
             }
-            FootpathRemoveEdgesAt(_loc, footpathElement);
+            if (!isNetworkGhost)
+            {
+                FootpathRemoveEdgesAt(_loc, footpathElement);
+            }
             MapInvalidateTileFull(_loc);
             TileElementRemove(footpathElement);
-            FootpathUpdateQueueChains();
+            if (!isNetworkGhost)
+            {
+                FootpathUpdateQueueChains();
+            }
 
             // Remove the spawn point (if there is one in the current tile)
             gameState.peepSpawns.erase(
