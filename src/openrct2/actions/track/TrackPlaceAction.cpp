@@ -17,6 +17,7 @@
 #include "../../management/Finance.h"
 #include "../../ride/RideColour.h"
 #include "../../ride/RideData.h"
+#include "../../network/Network.h"
 #include "../../ride/Track.h"
 #include "../../ride/TrackData.h"
 #include "../../ride/TrackDesign.h"
@@ -562,7 +563,11 @@ namespace OpenRCT2::GameActions
                 }
             }
 
-            if (isOrigin || ride->overallView.isNull())
+            // Ghost pieces only exist on the building client in multiplayer; changing shared ride state for them
+            // would desync that client from the server and the other clients.
+            const bool isNetworkGhost = GetFlags().has(CommandFlag::ghost) && Network::GetMode() != Network::Mode::none;
+
+            if ((isOrigin || ride->overallView.isNull()) && !isNetworkGhost)
             {
                 ride->overallView = mapLoc;
             }
@@ -668,7 +673,7 @@ namespace OpenRCT2::GameActions
                 }
             }
 
-            if (!gameState.cheats.disableClearanceChecks || !GetFlags().has(CommandFlag::ghost))
+            if ((!gameState.cheats.disableClearanceChecks || !GetFlags().has(CommandFlag::ghost)) && !isNetworkGhost)
             {
                 FootpathConnectEdges(mapLoc, tileElement, GetFlags());
             }

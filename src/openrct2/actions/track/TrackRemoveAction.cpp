@@ -12,6 +12,7 @@
 #include "../../Diagnostic.h"
 #include "../../GameState.h"
 #include "../../management/Finance.h"
+#include "../../network/Network.h"
 #include "../../ride/RideData.h"
 #include "../../ride/Track.h"
 #include "../../ride/TrackData.h"
@@ -397,11 +398,17 @@ namespace OpenRCT2::GameActions
                 surfaceElement->setHasTrackThatNeedsWater(false);
             }
 
-            InvalidateTestResults(*ride);
-            FootpathQueueChainReset();
-            if (!gameState.cheats.disableClearanceChecks || !(foundElement->isGhost()))
+            // Ghost pieces only exist on the building client in multiplayer; invalidating the test results or
+            // touching path edges for them would desync that client from the server and the other clients.
+            const bool isNetworkGhost = isGhost && Network::GetMode() != Network::Mode::none;
+            if (!isNetworkGhost)
             {
-                FootpathRemoveEdgesAt(mapLoc, reinterpret_cast<TileElement*>(foundElement));
+                InvalidateTestResults(*ride);
+                FootpathQueueChainReset();
+                if (!gameState.cheats.disableClearanceChecks || !(foundElement->isGhost()))
+                {
+                    FootpathRemoveEdgesAt(mapLoc, reinterpret_cast<TileElement*>(foundElement));
+                }
             }
             TileElementRemove(reinterpret_cast<TileElement*>(foundElement));
             ride->validateStations();
