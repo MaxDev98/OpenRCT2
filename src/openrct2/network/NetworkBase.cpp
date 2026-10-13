@@ -47,7 +47,9 @@
 // It is used for making sure only compatible builds get connected, even within
 // single OpenRCT2 version.
 
-constexpr uint8_t kStreamVersion = 0;
+// Desync test builds (sgitaize/OpenRCT2 v0.5.6-desyncfix.N) use 200 + N, so they never connect to official builds
+// or to other desyncfix builds, which simulate differently.
+constexpr uint8_t kStreamVersion = 204;
 
 const std::string kStreamID = std::string(kOpenRCT2Version) + "-" + std::to_string(kStreamVersion);
 
