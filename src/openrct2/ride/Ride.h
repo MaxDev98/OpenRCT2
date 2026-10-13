@@ -432,6 +432,9 @@ namespace OpenRCT2
         uint8_t liftHillSpeed{};
         uint32_t guestsFavourite{};
         RideFlags flags{};
+        // Ride only exists locally as a track design placement preview. Not saved; skipped by RideManager so it
+        // does not affect the game state in multiplayer, where it only exists on the building client.
+        bool isGhost{};
         uint16_t totalAirTime{};
         StationIndex currentTestStation{ StationIndex::GetNull() };
         uint8_t numCircuits{};
@@ -802,7 +805,7 @@ namespace OpenRCT2
 
     Ride* GetRide(RideId index);
 
-    RideId GetNextFreeRideId();
+    RideId GetNextFreeRideId(bool fromEnd = false);
     Ride* RideAllocateAtIndex(RideId index);
     Ride& RideGetTemporaryForPreview();
     void RideDelete(RideId id);

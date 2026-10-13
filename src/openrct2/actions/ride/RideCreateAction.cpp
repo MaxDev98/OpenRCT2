@@ -79,7 +79,7 @@ namespace OpenRCT2::GameActions
             return Result(Status::invalidParameters, STR_CANT_CHANGE_OPERATING_MODE, STR_ERR_VALUE_OUT_OF_RANGE);
         }
 
-        auto rideIndex = GetNextFreeRideId();
+        auto rideIndex = GetNextFreeRideId(GetFlags().has(CommandFlag::ghost));
         if (rideIndex.IsNull())
         {
             // No more free slots available.
@@ -130,7 +130,10 @@ namespace OpenRCT2::GameActions
         auto res = Result();
 
         int32_t rideEntryIndex = RideGetEntryIndex(_rideType, _subType);
-        auto rideIndex = GetNextFreeRideId();
+        // Ghost rides (track design previews) only exist on the building client in multiplayer. Allocate them
+        // from the end so that they do not take the index of a ride created by another player meanwhile.
+        const bool isGhost = GetFlags().has(CommandFlag::ghost);
+        auto rideIndex = GetNextFreeRideId(isGhost);
 
         auto ride = RideAllocateAtIndex(rideIndex);
         const auto* rideEntry = GetRideEntryByIndex(rideEntryIndex);
@@ -142,6 +145,7 @@ namespace OpenRCT2::GameActions
             return Result(Status::unknown, STR_CANT_CREATE_NEW_RIDE_ATTRACTION, STR_UNKNOWN_OBJECT_TYPE);
         }
 
+        ride->isGhost = isGhost;
         ride->type = _rideType;
         ride->subtype = rideEntryIndex;
         ride->setColourPreset(_trackColourPreset, _vehicleColourPreset);

@@ -21,7 +21,7 @@ namespace OpenRCT2
         size_t count = 0;
         for (size_t i = 0; i < _gameState.ridesEndOfUsedRange; i++)
         {
-            if (!_gameState.rides[i].id.IsNull())
+            if (!_gameState.rides[i].id.IsNull() && !_gameState.rides[i].isGhost)
             {
                 count++;
             }

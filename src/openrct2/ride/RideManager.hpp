@@ -55,10 +55,17 @@ namespace OpenRCT2
                 , _index(static_cast<RideId::UnderlyingType>(beginIndex))
                 , _endIndex(static_cast<RideId::UnderlyingType>(endIndex))
             {
-                if (_index < _endIndex && (*_rideManager)[RideId::FromUnderlying(_index)] == nullptr)
+                if (_index < _endIndex && !isValid())
                 {
                     ++(*this);
                 }
+            }
+
+            // Ghost rides (track design previews) are skipped as they only exist on the building client.
+            bool isValid() const
+            {
+                const auto* ride = (*_rideManager)[RideId::FromUnderlying(_index)];
+                return ride != nullptr && !ride->isGhost;
             }
 
         public:
@@ -67,7 +74,7 @@ namespace OpenRCT2
                 do
                 {
                     _index++;
-                } while (_index < _endIndex && (*_rideManager)[RideId::FromUnderlying(_index)] == nullptr);
+                } while (_index < _endIndex && !isValid());
                 return *this;
             }
             Iterator operator++(int)

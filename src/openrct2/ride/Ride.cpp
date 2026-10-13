@@ -168,11 +168,13 @@ namespace OpenRCT2
     static void RideMusicUpdate(Ride& ride);
     static void RideShopConnected(const Ride& ride);
 
-    RideId GetNextFreeRideId()
+    RideId GetNextFreeRideId(bool fromEnd)
     {
         auto& gameState = getGameState();
-        for (RideId::UnderlyingType i = 0; i < gameState.rides.size(); i++)
+        const auto count = static_cast<RideId::UnderlyingType>(gameState.rides.size());
+        for (RideId::UnderlyingType n = 0; n < count; n++)
         {
+            const auto i = fromEnd ? static_cast<RideId::UnderlyingType>(count - 1 - n) : n;
             if (gameState.rides[i].id.IsNull())
             {
                 return RideId::FromUnderlying(i);
