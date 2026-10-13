@@ -3131,7 +3131,9 @@ namespace OpenRCT2::Network
         }
 
         _serverState.tick = serverTick;
-        _serverTickData.emplace(serverTick, tickData);
+        // While paused the server keeps resending the same tick, and actions executed during the pause
+        // change srand0 and entities, so always keep the most recent data for a tick.
+        _serverTickData.insert_or_assign(serverTick, tickData);
     }
 
     void NetworkBase::Client_Handle_PLAYERINFO([[maybe_unused]] Connection& connection, Packet& packet)
