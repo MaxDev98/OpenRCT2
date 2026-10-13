@@ -13,6 +13,7 @@
 #include "../../GameState.h"
 #include "../../core/Guard.hpp"
 #include "../../management/Finance.h"
+#include "../../network/Network.h"
 #include "../../ride/Ride.h"
 #include "../../ride/Station.h"
 #include "../../world/ConstructionClearance.h"
@@ -210,6 +211,10 @@ namespace OpenRCT2::GameActions
         entranceElement->setRideIndex(_rideIndex);
         entranceElement->setGhost(GetFlags().has(CommandFlag::ghost));
 
+        // Ghost entrances/exits only exist on the building client in multiplayer; connecting the neighbouring
+        // paths' edges or queue chains or resetting the station queue for them would desync that client.
+        const bool isNetworkGhost = GetFlags().has(CommandFlag::ghost) && Network::GetMode() != Network::Mode::none;
+
         if (_isExit)
         {
             station.exit = TileCoordsXYZD(CoordsXYZD{ _loc, z, entranceElement->getDirection() });
@@ -217,21 +222,26 @@ namespace OpenRCT2::GameActions
         else
         {
             station.entrance = TileCoordsXYZD(CoordsXYZD{ _loc, z, entranceElement->getDirection() });
-            station.lastPeepInQueue = EntityId::GetNull();
-            station.queueLength = 0;
+            if (!isNetworkGhost)
+            {
+                station.lastPeepInQueue = EntityId::GetNull();
+                station.queueLength = 0;
+            }
 
             MapAnimations::MarkTileForInvalidation(TileCoordsXY(_loc));
         }
-
-        FootpathQueueChainReset();
 
         if (!GetFlags().has(CommandFlag::ghost))
         {
             MazeEntranceHedgeRemoval({ _loc, entranceElement->as<TileElement>() });
         }
 
-        FootpathConnectEdges(_loc, entranceElement->as<TileElement>(), GetFlags());
-        FootpathUpdateQueueChains();
+        if (!isNetworkGhost)
+        {
+            FootpathQueueChainReset();
+            FootpathConnectEdges(_loc, entranceElement->as<TileElement>(), GetFlags());
+            FootpathUpdateQueueChains();
+        }
 
         MapInvalidateTileFull(_loc);
 

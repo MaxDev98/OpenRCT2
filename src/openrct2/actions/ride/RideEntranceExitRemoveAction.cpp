@@ -10,6 +10,7 @@
 #include "RideEntranceExitRemoveAction.h"
 
 #include "../../Diagnostic.h"
+#include "../../network/Network.h"
 #include "../../ride/Ride.h"
 #include "../../world/Entrance.h"
 #include "../../world/Map.h"
@@ -147,9 +148,20 @@ namespace OpenRCT2::GameActions
         res.position.y = _loc.y + 16;
         res.position.z = TileElementHeight(res.position);
 
-        FootpathQueueChainReset();
-        MazeEntranceHedgeReplacement({ _loc, entranceElement });
-        FootpathRemoveEdgesAt(_loc, entranceElement);
+        // Ghost entrances/exits only exist on the building client in multiplayer and were never connected to
+        // the neighbouring paths or queue chains, so disconnecting them would desync that client.
+        const bool isNetworkGhost = isGhost && Network::GetMode() != Network::Mode::none;
+        if (!isNetworkGhost)
+        {
+            FootpathQueueChainReset();
+            FootpathRemoveEdgesAt(_loc, entranceElement);
+        }
+
+        // Placing a ghost does not remove the maze hedges, so they must not be replaced either.
+        if (!isGhost)
+        {
+            MazeEntranceHedgeReplacement({ _loc, entranceElement });
+        }
 
         TileElementRemove(entranceElement);
 
@@ -163,7 +175,10 @@ namespace OpenRCT2::GameActions
             station.entrance.setNull();
         }
 
-        FootpathUpdateQueueChains();
+        if (!isNetworkGhost)
+        {
+            FootpathUpdateQueueChains();
+        }
 
         MapInvalidateTileFull(_loc);
         return res;
