@@ -1915,6 +1915,12 @@ namespace OpenRCT2
         auto quad = EntityTileList(coords);
         for (auto* otherEnt : quad)
         {
+            // Only count peeps and litter towards the limit. Other entities such as money effects are not
+            // synchronised in multiplayer (their position depends on the viewport rotation) and would otherwise
+            // change the result between clients.
+            if (otherEnt->as<Peep>() == nullptr && otherEnt->as<Litter>() == nullptr)
+                continue;
+
             if (iterations++ >= kMaxIterations)
             {
                 break;
