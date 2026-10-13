@@ -16,6 +16,7 @@
     #include "NetworkTypes.h"
     #include "Socket.h"
 
+    #include <deque>
     #include <memory>
     #include <string_view>
     #include <vector>
@@ -68,6 +69,10 @@ namespace OpenRCT2::Network
     private:
         std::vector<uint8_t> _inboundBuffer;
         std::vector<uint8_t> _outboundBuffer;
+        // Sizes of the packets in _outboundBuffer and how much of the first one was already sent, so that packets
+        // queued at the front are never inserted into the middle of a partially sent packet.
+        std::deque<size_t> _outboundPacketSizes;
+        size_t _outboundFirstPacketSent{};
         uint32_t _lastReceiveTime = 0;
         std::string _lastDisconnectReason;
         bool _isLegacyProtocol = false;

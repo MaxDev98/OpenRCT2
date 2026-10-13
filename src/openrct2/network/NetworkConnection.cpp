@@ -190,11 +190,23 @@ namespace OpenRCT2::Network
             const auto payload = serializePacket(_isLegacyProtocol, packet);
             if (front)
             {
-                _outboundBuffer.insert(_outboundBuffer.begin(), payload.begin(), payload.end());
+                // Never split a packet that is already partially sent, that would corrupt the stream.
+                if (_outboundFirstPacketSent > 0 && !_outboundPacketSizes.empty())
+                {
+                    const auto remaining = _outboundPacketSizes.front() - _outboundFirstPacketSent;
+                    _outboundBuffer.insert(_outboundBuffer.begin() + remaining, payload.begin(), payload.end());
+                    _outboundPacketSizes.insert(_outboundPacketSizes.begin() + 1, payload.size());
+                }
+                else
+                {
+                    _outboundBuffer.insert(_outboundBuffer.begin(), payload.begin(), payload.end());
+                    _outboundPacketSizes.push_front(payload.size());
+                }
             }
             else
             {
                 _outboundBuffer.insert(_outboundBuffer.end(), payload.begin(), payload.end());
+                _outboundPacketSizes.push_back(payload.size());
             }
 
             recordPacketStats(packet, true);
@@ -223,6 +235,14 @@ namespace OpenRCT2::Network
         if (bytesSent > 0)
         {
             _outboundBuffer.erase(_outboundBuffer.begin(), _outboundBuffer.begin() + bytesSent);
+
+            auto sent = _outboundFirstPacketSent + bytesSent;
+            while (!_outboundPacketSizes.empty() && sent >= _outboundPacketSizes.front())
+            {
+                sent -= _outboundPacketSizes.front();
+                _outboundPacketSizes.pop_front();
+            }
+            _outboundFirstPacketSent = sent;
         }
     }
 
