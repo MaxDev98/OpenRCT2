@@ -210,35 +210,18 @@ namespace OpenRCT2::PathFinding
         return true;
     }
 
-    static struct TransportCache
+    // Not cached: a cache outside the park state would differ between server and a client that joins later,
+    // causing guests to path differently and the client to desync in multiplayer.
+    static bool HasUsableTransportRide()
     {
-        bool hasUsableTransport = false;
-        uint32_t lastCheckTick = 0;
-        static constexpr uint32_t kCacheValidTicks = 128;
-
-        bool CheckHasUsableTransport()
+        auto& gameState = getGameState();
+        for (const auto& ride : RideManager(gameState))
         {
-            auto& gameState = getGameState();
-            uint32_t currentTick = gameState.currentTicks;
-
-            if (currentTick - lastCheckTick < kCacheValidTicks)
-                return hasUsableTransport;
-
-            lastCheckTick = currentTick;
-            hasUsableTransport = false;
-
-            for (const auto& ride : RideManager(gameState))
-            {
-                if (IsUsableTransportRide(ride))
-                {
-                    hasUsableTransport = true;
-                    break;
-                }
-            }
-
-            return hasUsableTransport;
+            if (IsUsableTransportRide(ride))
+                return true;
         }
-    } _transportCache;
+        return false;
+    }
 
     // TODO: Zero cost means transport always wins. Needs a proper cost model.
     static uint8_t CalculateTransportCost(
@@ -1459,7 +1442,7 @@ namespace OpenRCT2::PathFinding
         state.queueRideIndex = queueRideIndex;
         state.usedTransportRideId = RideId::GetNull();
         state.foundPathViaTransport = false;
-        state.hasUsableTransport = (peep.as<Guest>() != nullptr) && _transportCache.CheckHasUsableTransport();
+        state.hasUsableTransport = (peep.as<Guest>() != nullptr) && HasUsableTransportRide();
 
         // The max number of thin junctions searched - a per-search-path limit.
         state.maxJunctions = PeepPathfindGetMaxNumberJunctions(peep);
